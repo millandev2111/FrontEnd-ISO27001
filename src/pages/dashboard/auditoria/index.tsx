@@ -1,8 +1,9 @@
-// pages/dashboard/auditoria/index.tsx
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import DashboardLayout from '../layout'
 import { Plus, Search, Filter, MoreVertical, Calendar, User, Building2, ChevronRight } from 'lucide-react'
 import axios from 'axios'
+import AuditCreationForm from '@/components/Dashboard/AuditCreationForm'
 
 interface Controlador {
     id: number
@@ -48,6 +49,7 @@ interface StrapiResponse {
 }
 
 const AuditoriaPage = () => {
+    const router = useRouter()
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatus, setFilterStatus] = useState('todos')
     const [showCreateModal, setShowCreateModal] = useState(false)
@@ -56,13 +58,13 @@ const AuditoriaPage = () => {
     const [error, setError] = useState<string | null>(null)
 
     const getAuthToken = () => {
-        return localStorage.getItem('jwtToken') || 
-               localStorage.getItem('auth_token') || 
-               localStorage.getItem('token') || 
-               sessionStorage.getItem('jwtToken') || 
-               sessionStorage.getItem('auth_token') || 
-               sessionStorage.getItem('token') || 
-               null
+        return localStorage.getItem('jwtToken') ||
+            localStorage.getItem('auth_token') ||
+            localStorage.getItem('token') ||
+            sessionStorage.getItem('jwtToken') ||
+            sessionStorage.getItem('auth_token') ||
+            sessionStorage.getItem('token') ||
+            null
     }
 
     useEffect(() => {
@@ -73,13 +75,13 @@ const AuditoriaPage = () => {
         try {
             setLoading(true)
             setError(null)
-            
+
             const token = getAuthToken()
-            
+
             if (!token) {
                 throw new Error('No se encontró el token de autenticación')
             }
-            
+
             const response = await axios.get<StrapiResponse>('http://localhost:1337/api/auditorias', {
                 params: {
                     populate: ['users', 'controladors']
@@ -91,10 +93,10 @@ const AuditoriaPage = () => {
             })
 
             let transformedAuditorias: Auditoria[] = []
-            
+
             if (Array.isArray(response.data) && response.data.length > 0 && !response.data[0].attributes) {
                 transformedAuditorias = response.data
-            } 
+            }
             else if (response.data?.data && Array.isArray(response.data.data)) {
                 transformedAuditorias = response.data.data.map(item => {
                     if (!item.attributes) {
@@ -110,7 +112,7 @@ const AuditoriaPage = () => {
             else {
                 transformedAuditorias = []
             }
-            
+
             setAuditorias(transformedAuditorias)
             setError(null)
         } catch (err) {
@@ -162,6 +164,57 @@ const AuditoriaPage = () => {
         return 'bg-red-600'
     }
 
+    // Función para obtener los nombres de usuario de forma segura
+    const getUserNames = (auditoria: Auditoria) => {
+        if (!auditoria.users || auditoria.users.length === 0) {
+            return 'Sin usuarios asignados'
+        }
+
+        return auditoria.users
+            .map(user => {
+                if (user && typeof user === 'object' && user !== null) {
+                    // Verificar username/email en user
+                    if ('username' in user && typeof user.username === 'string') {
+                        return user.username
+                    }
+                    if ('email' in user && typeof user.email === 'string') {
+                        return user.email
+                    }
+
+                    // Verificar username/email en user.data
+                    if (
+                        'data' in user &&
+                        typeof user.data === 'object' &&
+                        user.data !== null
+                    ) {
+                        if ('username' in user.data && typeof user.data.username === 'string') {
+                            return user.data.username
+                        }
+                        if ('email' in user.data && typeof user.data.email === 'string') {
+                            return user.data.email
+                        }
+                    }
+
+                    // Verificar username/email en user.attributes
+                    if (
+                        'attributes' in user &&
+                        typeof user.attributes === 'object' &&
+                        user.attributes !== null
+                    ) {
+                        if ('username' in user.attributes && typeof user.attributes.username === 'string') {
+                            return user.attributes.username
+                        }
+                        if ('email' in user.attributes && typeof user.attributes.email === 'string') {
+                            return user.attributes.email
+                        }
+                    }
+                }
+
+                return 'Usuario desconocido'
+            })
+            .join(', ')
+    }
+
     const filteredAuditorias = auditorias.filter(auditoria => {
         if (searchTerm && !auditoria.title.toLowerCase().includes(searchTerm.toLowerCase())) {
             return false
@@ -176,6 +229,24 @@ const AuditoriaPage = () => {
 
         return true
     })
+
+    const handleAuditCreated = () => {
+        // Recargar la lista de auditorías después de crear una nueva
+        fetchAuditorias()
+    }
+
+    // Función para navegar al detalle de la auditoría
+    const navigateToAuditDetail = (auditoria: Auditoria) => {
+        router.push(`/dashboard/auditoria/${simpleSlugify(auditoria.title)}`)
+    }
+    const simpleSlugify = (text: string) => {
+        return text
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-') // espacios y caracteres a guion
+            .replace(/^-+|-+$/g, '') // quita guiones al inicio y final
+    }
+
 
     return (
         <DashboardLayout>
@@ -198,10 +269,7 @@ const AuditoriaPage = () => {
                                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <Filter className="h-5 w-5 text-gray-600" />
-                                <span className="text-gray-700">Filtrar</span>
-                            </button>
+
                         </div>
 
                         <button
@@ -221,8 +289,8 @@ const AuditoriaPage = () => {
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
                                 className={`px-6 py-3 text-sm font-medium transition-colors ${filterStatus === status
-                                        ? 'text-blue-600 border-b-2 border-blue-600'
-                                        : 'text-gray-600 hover:text-gray-800'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-600 hover:text-gray-800'
                                     }`}
                             >
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -245,7 +313,7 @@ const AuditoriaPage = () => {
                                 <p className="font-medium">Error</p>
                                 <p className="text-sm">{error}</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={fetchAuditorias}
                                 className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
                             >
@@ -260,13 +328,22 @@ const AuditoriaPage = () => {
                         {filteredAuditorias.map((auditoria) => {
                             const progreso = getProgressPercentage(auditoria)
                             return (
-                                <div key={auditoria.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                                <div
+                                    key={auditoria.id}
+                                    className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                    onClick={() => navigateToAuditDetail(auditoria)}
+                                >
                                     <div className="p-6">
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="text-lg font-semibold text-gray-800 line-clamp-2">
                                                 {auditoria.title}
                                             </h3>
-                                            <button className="text-gray-400 hover:text-gray-600">
+                                            <button
+                                                className="text-gray-400 hover:text-gray-600"
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // Evitar que el click se propague al contenedor
+                                                }}
+                                            >
                                                 <MoreVertical className="h-5 w-5" />
                                             </button>
                                         </div>
@@ -275,14 +352,12 @@ const AuditoriaPage = () => {
                                             {auditoria.description}
                                         </p>
 
-                                        {auditoria.users && auditoria.users.length > 0 && (
-                                            <div className="flex items-center gap-2 mb-3 text-gray-600">
-                                                <User className="h-4 w-4" />
-                                                <span className="text-sm">
-                                                    {auditoria.users.map(u => u.data?.username || u.data?.email).join(', ')}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-2 mb-3 text-gray-600">
+                                            <User className="h-4 w-4" />
+                                            <span className="text-sm">
+                                                {getUserNames(auditoria)}
+                                            </span>
+                                        </div>
 
                                         <div className="flex items-center gap-2 mb-4 text-gray-600">
                                             <Calendar className="h-4 w-4" />
@@ -349,23 +424,10 @@ const AuditoriaPage = () => {
             </div>
 
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Nueva Auditoría</h2>
-                        <p className="text-gray-600 mb-4">Formulario de creación aquí...</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                            >
-                                Cancelar
-                            </button>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                Crear Auditoría
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <AuditCreationForm
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={handleAuditCreated}
+                />
             )}
         </DashboardLayout>
     )
