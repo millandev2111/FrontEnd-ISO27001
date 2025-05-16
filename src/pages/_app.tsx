@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import Navbar from "@/components/Navbar";
+import { ResultadosProvider } from "@/context/ResultadosContext";
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -9,8 +10,10 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <>
+    <ResultadosProvider >
       {!isDashboard && <Navbar />}
       <Component {...pageProps} />
+    </ResultadosProvider>
     </>
   );
 }

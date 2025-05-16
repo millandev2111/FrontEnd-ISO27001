@@ -109,7 +109,7 @@ export default function Navbar() {
               <Link href="/home" className="block px-3 py-2 rounded-md text-base font-medium text-black hover:text-gray-700 hover:bg-gray-100">
                 Inicio
               </Link>
-              <Link href="#" className="block px-3 py-2 rounded-md text-base font-medium text-black hover:text-gray-700 hover:bg-gray-100">
+              <Link href="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-black hover:text-gray-700 hover:bg-gray-100">
                 Dashboard
               </Link>
               <Link href="/labs" className="block px-3 py-2 rounded-md text-base font-medium text-black hover:text-gray-700 hover:bg-gray-100">
