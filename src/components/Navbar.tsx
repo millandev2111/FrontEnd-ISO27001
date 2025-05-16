@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { User } from '@/icons/user';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,10 +59,10 @@ export default function Navbar() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <div className="h-8 w-32 rounded flex items-center justify-center text-white font-bold">
+              <div className="rounded flex items-center justify-center text-white font-bold">
                 <Link href="/">
-                  <Image src="/assets/logo-colores.png" alt="Logo" width={80} height={80} />
-                </Link>
+                  <Image src="/logoipsum-360.svg" alt="Logo" width={200} height={200} />
+                </Link> 
               </div>
             </div>
 
@@ -76,10 +77,14 @@ export default function Navbar() {
               <Link href="/labs" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">
                 Sobre Nosotros
               </Link>
-              <Link href="/login" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">
-                Iniciar Sesión
-              </Link>
+
             </div>
+              <div>
+                <Link href="/login" className="text-white bg-[#5233DD] px-3 py-2 font-bold transition-colors flex gap-2 items-center rounded-md hover:bg-[#5233DD]/80">
+                Iniciar Sesión
+                <User/>
+              </Link>
+              </div>
 
             {/* Mobile Menu Button */}
             <div className="lg:hidden">

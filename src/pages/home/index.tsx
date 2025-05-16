@@ -30,15 +30,15 @@ const Home = ({
 
       {/* Tarjeta blanca superpuesta */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl p-8 w-full max-w-lg ">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-1">
+        <div className="">
+          <h1 className="text-3xl font-bold mb-1 text-black">
             {titleFirstPart}
           </h1>
           <h1 className="text-3xl font-bold text-indigo-600 mb-1">
             {titleHighlightPart}
           </h1>
           {titleLastLines.map((line, index) => (
-            <h1 key={index} className="text-3xl font-bold mb-1">
+            <h1 key={index} className="text-3xl font-bold mb-1 text-black">
               {line}
             </h1>
           ))}
