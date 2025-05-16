@@ -14,7 +14,7 @@ export default function Dashboard() {
 
           {/* Dashboard Content */}
           <div className="flex-1 p-6 bg-gray-50">
-            <h1 className="text-2xl font-medium mb-6">Dashboard</h1>
+            <h1 className="text-2xl font-medium mb-6">Tu Actividad</h1>
 
             {/* KPI Cards */}
             <KpiCards />

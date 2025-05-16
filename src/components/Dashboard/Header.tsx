@@ -38,7 +38,6 @@ export default function Header() {
     if (userInfo) {
       const userParsed = JSON.parse(userInfo as string)  // Parsear el JSON
       setUserData(userParsed)  // Establecer los datos del usuario
-      console.log('Datos de usuario desde cookies:', userParsed)
     } else {
       console.log('No hay datos de usuario en las cookies.')
     }
@@ -61,11 +60,11 @@ export default function Header() {
   const isDashboardPage = router.pathname === '/dashboard'
 
   return (
-    <header className="bg-white shadow-sm z-10">
+    <header className="bg-blue-500 shadow-sm z-10">
       <div className="flex justify-between items-center px-6 py-3">
         {/* Título con el nombre de usuario, solo en /dashboard */}
         {isDashboardPage ? (
-          <h2 className="text-xl text-gray-600">
+          <h2 className="text-xl text-white">
             Bienvenido a tú Dashboard, <span className="font-medium">{displayName}</span>!
           </h2>
         ) : (
