@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../../layout';
-import { 
-  ArrowLeft, Calendar, User, ClipboardCheck, Save,
-  Clock, Clipboard, AlertCircle, CheckCircle
+import {
+    ArrowLeft, Calendar, User, ClipboardCheck, Save,
+    Clock, Clipboard, AlertCircle, CheckCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { useResultados } from '@/context/ResultadosContext';
+import { getCookie } from 'cookies-next';
 
 // Interfaces simplificadas
 interface Usuario {
@@ -55,19 +56,12 @@ const AuditoriaDetalle = () => {
     const [error, setError] = useState<string | null>(null);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-    const getAuthToken = useCallback(() => {
+    const getAuthToken = () => {
         if (typeof window === 'undefined') return null;
-        
-        return (
-            localStorage.getItem('jwtToken') ||
-            localStorage.getItem('auth_token') ||
-            localStorage.getItem('token') ||
-            sessionStorage.getItem('jwtToken') ||
-            sessionStorage.getItem('auth_token') ||
-            sessionStorage.getItem('token') ||
-            null
-        );
-    }, []);
+        const token = getCookie('auth_token')
+        return typeof token === 'string' ? token : null
+    }
+
 
     const slugToTitle = useCallback((slug: string) => {
         if (!slug) return '';
@@ -91,7 +85,7 @@ const AuditoriaDetalle = () => {
             const titleStr = Array.isArray(titleParam) ? titleParam[0] : titleParam.toString();
             const titleFromSlug = slugToTitle(titleStr);
 
-            const auditoriaRes = await axios.get('http://localhost:1337/api/auditorias', {
+            const auditoriaRes = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
                 params: {
                     filters: { title: { $eq: titleFromSlug } },
                     populate: ['users', 'controladors'],
@@ -168,17 +162,20 @@ const AuditoriaDetalle = () => {
         if (!auditoria || !auditoria.controladors || !auditoria.controladors.length) return 0;
 
         const total = auditoria.controladors.length;
-        
+
         // Contar controladores con resultados
         const evaluados = auditoria.controladors.filter(controlador => {
             try {
-                const controladorId = typeof controlador.id === 'number' ? controlador.id : 
-                                   controlador.id ? parseInt(controlador.id.toString()) : null;
-                return controladorId && resultadosGlobales[controladorId]?.tipo !== undefined;
+                const controladorId = typeof controlador.id === 'number' ? controlador.id :
+                    controlador.id ? parseInt(controlador.id.toString()) : null;
+                const clave = `${auditoria.id}-${controladorId}`;
+                const resultado = resultadosGlobales[clave];
+                return resultado && typeof resultado.tipo === 'string' && resultado.tipo.trim() !== '';
             } catch (e) {
                 return false;
             }
         }).length;
+
 
         return Math.round((evaluados / total) * 100);
     }, [auditoria, resultadosGlobales]);
@@ -189,36 +186,36 @@ const AuditoriaDetalle = () => {
         if (progreso >= 25) return 'bg-orange-500';
         return 'bg-red-500';
     }, []);
-    
+
     // Componente para el círculo de progreso - Memoizado para evitar recreaciones
     const CircularProgressBar = React.memo(({ percentage }: { percentage: number }) => {
         const circumference = 2 * Math.PI * 40; // Radio = 40
         const strokeDashoffset = circumference - (percentage / 100) * circumference;
         let progressColor;
-        
+
         if (percentage >= 75) progressColor = 'text-emerald-500';
         else if (percentage >= 50) progressColor = 'text-amber-500';
         else if (percentage >= 25) progressColor = 'text-orange-500';
         else progressColor = 'text-red-500';
-        
+
         return (
             <div className="relative h-32 w-32">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <circle 
-                        cx="50" 
-                        cy="50" 
-                        r="40" 
-                        fill="none" 
-                        stroke="#e5e7eb" 
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="#e5e7eb"
                         strokeWidth="10"
                     />
-                    
-                    <circle 
-                        cx="50" 
-                        cy="50" 
-                        r="40" 
-                        fill="none" 
-                        stroke="currentColor" 
+
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="currentColor"
                         strokeWidth="10"
                         strokeLinecap="round"
                         strokeDasharray={circumference}
@@ -226,14 +223,14 @@ const AuditoriaDetalle = () => {
                         className={`${progressColor} transform -rotate-90 origin-center transition-all duration-1000 ease-out`}
                     />
                 </svg>
-                
+
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-3xl font-bold text-slate-800">{percentage}%</span>
                 </div>
             </div>
         );
     });
-    
+
     // Asignar un displayName al componente memoizado
     CircularProgressBar.displayName = 'CircularProgressBar';
 
@@ -278,11 +275,11 @@ const AuditoriaDetalle = () => {
 
     // Cálculos de datos una vez que tenemos la auditoría
     const progreso = calcularProgreso();
-    
+
     // Formato de fechas con manejo de errores
     let fechaInicio = 'Fecha no disponible';
     let fechaFin = 'Fecha no disponible';
-    
+
     try {
         if (auditoria.startDate) {
             fechaInicio = new Date(auditoria.startDate).toLocaleDateString('es-ES', {
@@ -291,7 +288,7 @@ const AuditoriaDetalle = () => {
                 year: 'numeric'
             });
         }
-        
+
         if (auditoria.endDate) {
             fechaFin = new Date(auditoria.endDate).toLocaleDateString('es-ES', {
                 day: 'numeric',
@@ -302,12 +299,12 @@ const AuditoriaDetalle = () => {
     } catch (e) {
         console.error('Error al formatear fechas:', e);
     }
-    
+
     // Contar los controles evaluados
     const controlesEvaluados = !auditoria.controladors ? 0 : auditoria.controladors.filter(controlador => {
         try {
-            const controladorId = typeof controlador.id === 'number' ? controlador.id : 
-                               controlador.id ? parseInt(controlador.id.toString()) : null;
+            const controladorId = typeof controlador.id === 'number' ? controlador.id :
+                controlador.id ? parseInt(controlador.id.toString()) : null;
             return controladorId && resultadosGlobales[controladorId]?.tipo !== undefined;
         } catch (e) {
             return false;
@@ -378,7 +375,7 @@ const AuditoriaDetalle = () => {
                             <Clipboard className="h-5 w-5 mr-2 text-blue-600" />
                             Detalles de la auditoría
                         </h2>
-                        
+
                         <p className="text-slate-600 mb-6 text-lg leading-relaxed">{auditoria.description || 'Sin descripción'}</p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -410,7 +407,7 @@ const AuditoriaDetalle = () => {
                             <ClipboardCheck className="h-5 w-5 mr-2 text-blue-600" />
                             Progreso
                         </h2>
-                        
+
                         <div className="flex justify-center mb-4">
                             <CircularProgressBar percentage={progreso} />
                         </div>
@@ -419,7 +416,7 @@ const AuditoriaDetalle = () => {
                             <div className="text-sm font-medium text-slate-600 mb-3">
                                 Controles evaluados: {controlesEvaluados} de {auditoria.controladors?.length || 0}
                             </div>
-                            
+
                             <div className="w-full bg-slate-200 rounded-full h-2.5 mb-4">
                                 <div
                                     className={`h-2.5 rounded-full transition-all ${getProgressColor(progreso)}`}
@@ -437,11 +434,11 @@ const AuditoriaDetalle = () => {
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Sección de estadísticas */}
                 <div className="bg-white rounded-xl shadow-md p-6 mt-6 border border-slate-200">
                     <h2 className="text-xl font-semibold text-slate-800 mb-4">Resumen de controles</h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 flex items-center justify-between">
                             <div>
@@ -452,7 +449,7 @@ const AuditoriaDetalle = () => {
                                 <ClipboardCheck className="h-6 w-6 text-blue-600" />
                             </div>
                         </div>
-                        
+
                         <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100 flex items-center justify-between">
                             <div>
                                 <p className="text-emerald-700 font-medium">Evaluados</p>
@@ -464,7 +461,7 @@ const AuditoriaDetalle = () => {
                                 <CheckCircle className="h-6 w-6 text-emerald-600" />
                             </div>
                         </div>
-                        
+
                         <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 flex items-center justify-between">
                             <div>
                                 <p className="text-amber-700 font-medium">Pendientes</p>
@@ -476,7 +473,7 @@ const AuditoriaDetalle = () => {
                                 <Clock className="h-6 w-6 text-amber-600" />
                             </div>
                         </div>
-                        
+
                         <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 flex items-center justify-between">
                             <div>
                                 <p className="text-purple-700 font-medium">Días restantes</p>

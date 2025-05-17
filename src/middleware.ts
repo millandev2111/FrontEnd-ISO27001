@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   try {
     // Opcionalmente, puedes validar el token con Strapi
     // Esto es más seguro que simplemente verificar si existe
-    const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}/api/users/me`, {
+    const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_URL || 'https://backend-iso27001.onrender.com'}/api/users/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

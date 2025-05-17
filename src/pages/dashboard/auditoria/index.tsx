@@ -5,6 +5,7 @@ import { Plus, Search, Filter, MoreVertical, Calendar, User, Building2, ChevronR
 import axios from 'axios'
 import AuditCreationForm from '@/components/Dashboard/AuditCreationForm'
 import { useResultados } from '@/context/ResultadosContext' // Importamos el hook de contexto
+import { getCookie } from 'cookies-next'
 
 interface Controlador {
     id: number
@@ -60,13 +61,9 @@ const AuditoriaPage = () => {
     const [error, setError] = useState<string | null>(null)
 
     const getAuthToken = () => {
-        return localStorage.getItem('jwtToken') ||
-            localStorage.getItem('auth_token') ||
-            localStorage.getItem('token') ||
-            sessionStorage.getItem('jwtToken') ||
-            sessionStorage.getItem('auth_token') ||
-            sessionStorage.getItem('token') ||
-            null
+        if (typeof window === 'undefined') return null;
+        const token = getCookie('auth_token')
+        return typeof token === 'string' ? token : null
     }
 
     useEffect(() => {
@@ -86,7 +83,7 @@ const AuditoriaPage = () => {
                 throw new Error('No se encontró el token de autenticación')
             }
 
-            const response = await axios.get<StrapiResponse>('http://localhost:1337/api/auditorias', {
+            const response = await axios.get<StrapiResponse>('https://backend-iso27001.onrender.com/api/auditorias', {
                 params: {
                     populate: ['users', 'controladors']
                 },
@@ -159,22 +156,18 @@ const AuditoriaPage = () => {
     // Actualizada para usar el contexto de resultados
     const getProgressPercentage = (auditoria: Auditoria) => {
         if (!auditoria.controladors || auditoria.controladors.length === 0) return 0
-        
+
         // Contar cuántos controladores tienen resultados
         const totalControls = auditoria.controladors.length
         const completedControls = auditoria.controladors
             .filter(c => {
-                // Intentar obtener el ID del controlador de diferentes maneras
-                let controladorId = c.id
-                if (!controladorId && c.data?.id) {
-                    controladorId = c.data.id
-                }
-                
-                // Verificar si existe un resultado para este controlador
-                return controladorId && resultados[controladorId]?.tipo !== undefined
+                const controladorId = c.id || c.data?.id
+                const clave = `${auditoria.id}-${controladorId}`
+                const resultado = resultados[clave]
+                return resultado && typeof resultado.tipo === 'string' && resultado.tipo.trim() !== ''
             })
             .length
-        
+
         // Calcular el porcentaje de progreso
         return Math.round((completedControls / totalControls) * 100)
     }
@@ -244,7 +237,7 @@ const AuditoriaPage = () => {
 
         if (filterStatus !== 'todos') {
             const estado = auditoria.state?.toLowerCase() || ''
-            
+
             // Corregir la validación de estado
             if (filterStatus === 'en progreso' && estado !== 'en progreso' && estado !== 'in_progress') return false
             if (filterStatus === 'completadas' && estado !== 'completada' && estado !== 'completed') return false
@@ -264,7 +257,7 @@ const AuditoriaPage = () => {
     const navigateToAuditDetail = (auditoria: Auditoria) => {
         router.push(`/dashboard/auditoria/${simpleSlugify(auditoria.title)}`)
     }
-    
+
     const simpleSlugify = (text: string) => {
         return text
             .toLowerCase()
@@ -360,7 +353,7 @@ const AuditoriaPage = () => {
                                     return controladorId && resultados[controladorId]?.tipo !== undefined;
                                 })
                                 .length || 0
-                            
+
                             return (
                                 <div
                                     key={auditoria.id}

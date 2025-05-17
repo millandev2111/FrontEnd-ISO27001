@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronRight, ChevronLeft, ChevronDown, Check, FileText, Shield, Building, UserCheck, Monitor, Loader } from 'lucide-react';
 import axios from 'axios';
+import { getCookie } from 'cookies-next';
 
 interface Controller {
   id: number;
@@ -84,16 +85,11 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
   });
 
   const getAuthToken = () => {
-    return (
-      localStorage.getItem('jwtToken') ||
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('jwtToken') ||
-      sessionStorage.getItem('auth_token') ||
-      sessionStorage.getItem('token') ||
-      null
-    );
-  };
+    if (typeof window === 'undefined') return null;
+    const token = getCookie('auth_token')
+    return typeof token === 'string' ? token : null
+  }
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,14 +100,14 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
         const token = getAuthToken();
         if (!token) throw new Error('No se encontró el token de autenticación');
 
-        const controllersResponse = await axios.get('http://localhost:1337/api/controladors', {
+        const controllersResponse = await axios.get('https://backend-iso27001.onrender.com/api/controladors', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
 
-        const usersResponse = await axios.get('http://localhost:1337/api/users', {
+        const usersResponse = await axios.get('https://backend-iso27001.onrender.com/api/users', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -244,7 +240,7 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
 
       console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
 
-      const response = await axios.post('http://localhost:1337/api/auditorias', payload, {
+      const response = await axios.post('https://backend-iso27001.onrender.com/api/auditorias', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
