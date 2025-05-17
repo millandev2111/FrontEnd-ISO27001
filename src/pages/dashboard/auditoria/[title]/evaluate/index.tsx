@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../../../layout';
+import { getCookie } from 'cookies-next';
 import {
   ArrowLeft,
   Save,
@@ -92,16 +93,11 @@ const EvaluateAuditoria = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const getAuthToken = () => {
-    return (
-      localStorage.getItem('jwtToken') ||
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('jwtToken') ||
-      sessionStorage.getItem('auth_token') ||
-      sessionStorage.getItem('token') ||
-      null
-    );
-  };
+    if (typeof window === 'undefined') return null;
+    const token = getCookie('auth_token')
+    return typeof token === 'string' ? token : null
+  }
+
 
   const getUserIdFromCookie = () => {
     try {
@@ -140,7 +136,7 @@ const EvaluateAuditoria = () => {
         if (!token) throw new Error('No token de autenticación');
         const titleFromSlug = slugToTitle(title.toString());
         console.log('Fetching auditoria with title:', titleFromSlug);
-        const auditoriaRes = await axios.get('http://localhost:1337/api/auditorias', {
+        const auditoriaRes = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
           params: { filters: { title: { $eq: titleFromSlug } }, populate: ['controladors'] },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -166,7 +162,7 @@ const EvaluateAuditoria = () => {
         const token = getAuthToken();
         if (!token) throw new Error('No token de autenticación');
 
-        const resultadosRes = await axios.get('http://localhost:1337/api/resultados', {
+        const resultadosRes = await axios.get('https://backend-iso27001.onrender.com/api/resultados', {
           params: { populate: ['controlador', 'auditoria', 'evaluadoPor'] },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -251,13 +247,13 @@ const EvaluateAuditoria = () => {
       if (currentResult.documentId) {
         console.log('Actualizando resultado existente documentId:', currentResult.documentId);
         response = await axios.put(
-          `http://localhost:1337/api/resultados/${currentResult.documentId}`,
+          `https://backend-iso27001.onrender.com/api/resultados/${currentResult.documentId}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         console.log('Creando nuevo resultado');
-        response = await axios.post('http://localhost:1337/api/resultados', payload, {
+        response = await axios.post('https://backend-iso27001.onrender.com/api/resultados', payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const nuevoId = response.data.data.id;

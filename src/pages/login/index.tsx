@@ -15,7 +15,7 @@ const Login = () => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post('http://localhost:1337/api/auth/local', {
+      const response = await axios.post('https://backend-iso27001.onrender.com/api/auth/local', {
         identifier: email,
         password,
       })

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/router'
 import { useResultados } from '@/context/ResultadosContext'
+import { getCookie } from 'cookies-next'
 
 interface Controlador {
   id: number
@@ -31,16 +32,11 @@ const AuditoriaWidget = () => {
   const [error, setError] = useState<string | null>(null)
 
   const getAuthToken = () => {
-    return (
-      localStorage.getItem('jwtToken') ||
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('jwtToken') ||
-      sessionStorage.getItem('auth_token') ||
-      sessionStorage.getItem('token') ||
-      null
-    )
+    if (typeof window === 'undefined') return null;
+    const token = getCookie('auth_token')
+    return typeof token === 'string' ? token : null
   }
+
 
   useEffect(() => {
     fetchAuditoriasData()
@@ -54,7 +50,7 @@ const AuditoriaWidget = () => {
       const token = getAuthToken()
       if (!token) throw new Error('No se encontró el token de autenticación')
 
-      const response = await axios.get('http://localhost:1337/api/auditorias', {
+      const response = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
         params: { populate: ['controladors'] },
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
       })
@@ -141,9 +137,16 @@ const AuditoriaWidget = () => {
         const completedControls = auditoria.controladors
           ?.filter(c => {
             const controladorId = c.id;
-            return controladorId && resultados[controladorId]?.tipo !== undefined;
+            const clave = `${auditoria.id}-${controladorId}`;
+            const resultado = resultados[clave];
+            return (
+              resultado &&
+              typeof resultado.tipo === 'string' &&
+              resultado.tipo.trim() !== ''
+            );
           })
           .length || 0
+
 
         const progress = totalControls > 0 ? Math.round((completedControls / totalControls) * 100) : 0
         const progressColor = getProgressColor(progress);
@@ -158,22 +161,22 @@ const AuditoriaWidget = () => {
               <div className="relative w-32 h-32">
                 {/* Base circle */}
                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle 
-                    cx="50" 
-                    cy="50" 
-                    r="40" 
-                    fill="none" 
-                    stroke="#e5e7eb" 
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#e5e7eb"
                     strokeWidth="10"
                   />
-                  
+
                   {/* Progress circle with animation */}
-                  <circle 
-                    cx="50" 
-                    cy="50" 
-                    r="40" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="currentColor"
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={circumference}
@@ -181,7 +184,7 @@ const AuditoriaWidget = () => {
                     className={`${progressColor} transform -rotate-90 origin-center transition-all duration-1000 ease-out`}
                   />
                 </svg>
-                
+
                 {/* Percentage text in the middle */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
