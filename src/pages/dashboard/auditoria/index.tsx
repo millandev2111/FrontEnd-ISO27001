@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import DashboardLayout from '../layout'
 import { Plus, Search, Filter, MoreVertical, Calendar, User, Building2, ChevronRight } from 'lucide-react'
 import axios from 'axios'
 import AuditCreationForm from '@/components/Dashboard/AuditCreationForm'
 import { useResultados } from '@/context/ResultadosContext' // Importamos el hook de contexto
+// Importar las utilidades de progreso
+import { loadProgress, calculateProgress } from '@/utils/progressUtils'
 import { getCookie } from 'cookies-next'
 
 interface Controlador {
@@ -40,6 +42,7 @@ interface Auditoria {
     createdAt: string
     updatedAt: string
     publishedAt: string
+    documentId?: string
 }
 
 interface StrapiResponse {
@@ -48,6 +51,11 @@ interface StrapiResponse {
         attributes?: Auditoria
     }> | any[]
     meta?: any
+}
+
+// Interfaces para el estado del progreso
+interface ProgressState {
+    [key: number]: number; // Mapeo de auditoriaId a progreso (porcentaje)
 }
 
 const AuditoriaPage = () => {
@@ -59,6 +67,8 @@ const AuditoriaPage = () => {
     const [auditorias, setAuditorias] = useState<Auditoria[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    // Nuevo estado para almacenar el progreso de cada auditoría
+    const [auditoriaProgreso, setAuditoriaProgreso] = useState<ProgressState>({})
 
     const getAuthToken = () => {
         if (typeof window === 'undefined') return null;
@@ -71,6 +81,41 @@ const AuditoriaPage = () => {
         // Recargamos los resultados también al cargar la página
         refreshResultados()
     }, [])
+
+    // Nueva función para cargar el progreso de todas las auditorías
+    const loadAllAuditoriasProgress = useCallback(async (auditoriasToLoad: Auditoria[]) => {
+        // Crear un objeto para almacenar los progresos
+        const progresos: ProgressState = {};
+
+        // Cargar el progreso de cada auditoría, primero desde localStorage
+        for (const auditoria of auditoriasToLoad) {
+            if (auditoria && auditoria.id) {
+                // Intentar cargar desde localStorage primero (más rápido)
+                const savedProgress = loadProgress(auditoria.id);
+                if (savedProgress) {
+                    progresos[auditoria.id] = savedProgress.progreso;
+                } else {
+                    // Si no está en localStorage, calcular desde API (más lento, lo hacemos en segundo plano)
+                    try {
+                        calculateProgress(auditoria.id).then(result => {
+                            setAuditoriaProgreso(prev => ({
+                                ...prev,
+                                [auditoria.id]: result.progreso
+                            }));
+                        });
+                        // Mientras tanto, establecer un valor inicial de 0
+                        progresos[auditoria.id] = 0;
+                    } catch (err) {
+                        console.error(`Error calculando progreso para auditoría ${auditoria.id}:`, err);
+                        progresos[auditoria.id] = 0;
+                    }
+                }
+            }
+        }
+
+        // Actualizar el estado con todos los progresos cargados
+        setAuditoriaProgreso(progresos);
+    }, []);
 
     const fetchAuditorias = async () => {
         try {
@@ -115,6 +160,10 @@ const AuditoriaPage = () => {
             }
 
             setAuditorias(transformedAuditorias)
+
+            // NUEVO: Cargar el progreso para todas las auditorías
+            await loadAllAuditoriasProgress(transformedAuditorias);
+
             setError(null)
         } catch (err) {
             if (axios.isAxiosError(err)) {
@@ -153,23 +202,44 @@ const AuditoriaPage = () => {
         }
     }
 
-    // Actualizada para usar el contexto de resultados
+    // MODIFICADA: Función actualizada para usar primero el progreso del estado y luego calcular si es necesario
     const getProgressPercentage = (auditoria: Auditoria) => {
-        if (!auditoria.controladors || auditoria.controladors.length === 0) return 0
+        // Si tenemos el progreso ya cargado, lo usamos
+        if (auditoria.id && auditoriaProgreso[auditoria.id] !== undefined) {
+            return auditoriaProgreso[auditoria.id];
+        }
+
+        // Si no, calculamos como antes (fallback)
+        if (!auditoria.controladors || auditoria.controladors.length === 0) return 0;
 
         // Contar cuántos controladores tienen resultados
-        const totalControls = auditoria.controladors.length
-        const completedControls = auditoria.controladors
-            .filter(c => {
-                const controladorId = c.id || c.data?.id
-                const clave = `${auditoria.id}-${controladorId}`
-                const resultado = resultados[clave]
-                return resultado && typeof resultado.tipo === 'string' && resultado.tipo.trim() !== ''
-            })
-            .length
+        const totalControls = auditoria.controladors.length;
+        let completedControls = 0;
 
-        // Calcular el porcentaje de progreso
-        return Math.round((completedControls / totalControls) * 100)
+        // Recorrer cada controlador y verificar si tiene un resultado asociado
+        for (const controlador of auditoria.controladors) {
+            const controladorId = controlador.id || (controlador.data?.id);
+            if (controladorId) {
+                const clave = `${auditoria.id}-${controladorId}`;
+                const resultado = resultados[clave];
+                if (resultado && typeof resultado.tipo === 'string' && resultado.tipo.trim() !== '') {
+                    completedControls++;
+                }
+            }
+        }
+
+        // Calcular porcentaje
+        const progreso = Math.round((completedControls / totalControls) * 100);
+
+        // Guardar el progreso calculado para futuros usos
+        if (auditoria.id) {
+            setAuditoriaProgreso(prev => ({
+                ...prev,
+                [auditoria.id]: progreso
+            }));
+        }
+
+        return progreso;
     }
 
     const getProgressColor = (progreso: number) => {
@@ -179,7 +249,7 @@ const AuditoriaPage = () => {
         return 'bg-red-600'
     }
 
-    // Función para obtener los nombres de usuario de forma segura
+
     const getUserNames = (auditoria: Auditoria) => {
         if (!auditoria.users || auditoria.users.length === 0) {
             return 'Sin usuarios asignados'
@@ -229,7 +299,44 @@ const AuditoriaPage = () => {
             })
             .join(', ')
     }
+    const handleAuditCreated = () => {
+        // Recargar la lista de auditorías y resultados después de crear una nueva
+        fetchAuditorias()
+        refreshResultados()
+    }
 
+    // Función para navegar al detalle de la auditoría
+    const navigateToAuditDetail = (auditoria: Auditoria) => {
+        router.push(`/dashboard/auditoria/${auditoria.documentId}`)
+    }
+
+    const simpleSlugify = (text: string) => {
+        return text
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-') // espacios y caracteres a guion
+            .replace(/^-+|-+$/g, '') // quita guiones al inicio y final
+    }
+
+    // Recarga manual del progreso para una auditoría específica
+    const refreshAuditoriaProgress = async (auditoria: Auditoria) => {
+        if (auditoria && auditoria.id) {
+            try {
+                const updatedProgress = await calculateProgress(auditoria.id);
+                setAuditoriaProgreso(prev => ({
+                    ...prev,
+                    [auditoria.id]: updatedProgress.progreso
+                }));
+                return updatedProgress.progreso;
+            } catch (err) {
+                console.error(`Error recalculando progreso para auditoría ${auditoria.id}:`, err);
+                return getProgressPercentage(auditoria);
+            }
+        }
+        return 0;
+    };
+
+    // Filtrado de auditorías - sin cambios
     const filteredAuditorias = auditorias.filter(auditoria => {
         if (searchTerm && !auditoria.title.toLowerCase().includes(searchTerm.toLowerCase())) {
             return false
@@ -246,25 +353,6 @@ const AuditoriaPage = () => {
 
         return true
     })
-
-    const handleAuditCreated = () => {
-        // Recargar la lista de auditorías y resultados después de crear una nueva
-        fetchAuditorias()
-        refreshResultados()
-    }
-
-    // Función para navegar al detalle de la auditoría
-    const navigateToAuditDetail = (auditoria: Auditoria) => {
-        router.push(`/dashboard/auditoria/${simpleSlugify(auditoria.title)}`)
-    }
-
-    const simpleSlugify = (text: string) => {
-        return text
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9]+/g, '-') // espacios y caracteres a guion
-            .replace(/^-+|-+$/g, '') // quita guiones al inicio y final
-    }
 
     return (
         <DashboardLayout>
@@ -344,15 +432,11 @@ const AuditoriaPage = () => {
                 {!loading && !error && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredAuditorias.map((auditoria) => {
-                            const progreso = getProgressPercentage(auditoria)
+                            const progreso = getProgressPercentage(auditoria);
                             // Calculamos el número de controles completados para mostrar en la UI
-                            const totalControls = auditoria.controladors?.length || 0
-                            const completedControls = auditoria.controladors
-                                ?.filter(c => {
-                                    const controladorId = c.id || (c.data?.id);
-                                    return controladorId && resultados[controladorId]?.tipo !== undefined;
-                                })
-                                .length || 0
+                            const totalControls = auditoria.controladors?.length || 0;
+                            // Calculamos controles completados basándonos en el progreso
+                            const completedControls = Math.round((progreso / 100) * totalControls);
 
                             return (
                                 <div

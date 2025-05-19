@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useResultados } from '@/context/ResultadosContext';
+// Importar las utilidades de progreso
+import { saveProgress, updateProgressAfterEvaluation } from '@/utils/progressUtils';
 
 enum ResultadoTipo {
   CONFORME = 'conforme',
@@ -26,6 +28,7 @@ enum ResultadoTipo {
   NO_APLICA = 'no_aplica',
 }
 
+// Mantener las interfaces originales
 interface ResultadoControlador {
   id?: number;
   documentId?: string; // para PUT
@@ -40,7 +43,7 @@ interface ResultadoControlador {
 
 interface Controlador {
   id: number;
-  documentId: string; // referencia, no relación
+  documentId: string;
   code: string;
   title: string;
   ask: string;
@@ -80,7 +83,7 @@ interface ResultadoApi {
 
 const EvaluateAuditoria = () => {
   const router = useRouter();
-  const { title } = router.query;
+  const { documentId } = router.query;
   const { resultados: resultadosGlobales, refreshResultados } = useResultados();
 
   // Estado con clave compuesta auditoriaId-controladorId
@@ -98,7 +101,6 @@ const EvaluateAuditoria = () => {
     return typeof token === 'string' ? token : null
   }
 
-
   const getUserIdFromCookie = () => {
     try {
       const cookies = document.cookie.split(';').map((c) => c.trim());
@@ -114,19 +116,9 @@ const EvaluateAuditoria = () => {
     }
   };
 
-  const slugToTitle = (slug: string) => {
-    return slug
-      ? slug
-        .toString()
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-      : '';
-  };
-
   useEffect(() => {
-    console.log('EvaluateAuditoria mounted or title changed:', { title });
-    if (!title) return;
+    console.log('EvaluateAuditoria mounted or documentId changed:', documentId);
+    if (!documentId) return;
 
     const fetchAuditoria = async () => {
       try {
@@ -134,21 +126,58 @@ const EvaluateAuditoria = () => {
         setError(null);
         const token = getAuthToken();
         if (!token) throw new Error('No token de autenticación');
-        const titleFromSlug = slugToTitle(title.toString());
-        console.log('Fetching auditoria with title:', titleFromSlug);
+
+        // Buscar directamente por documentId
+        console.log('Fetching auditoria with documentId:', documentId);
+
+        // Opción 1: Buscar directamente por documentId
         const auditoriaRes = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
-          params: { filters: { title: { $eq: titleFromSlug } }, populate: ['controladors'] },
+          params: {
+            filters: {
+              documentId: { $eq: documentId }
+            },
+            populate: ['controladors']
+          },
           headers: { Authorization: `Bearer ${token}` },
         });
+
         console.log('Auditoria raw response:', auditoriaRes.data);
-        if (!auditoriaRes.data.data.length) throw new Error('Auditoría no encontrada');
-        const auditoriaData = auditoriaRes.data.data[0];
-        const auditoriaObj = auditoriaData.attributes
-          ? { id: auditoriaData.id, ...auditoriaData.attributes }
-          : auditoriaData;
-        console.log('Parsed auditoria object:', auditoriaObj);
-        setAuditoria(auditoriaObj);
-        await fetchResultados(auditoriaObj);
+
+        if (!auditoriaRes.data.data || auditoriaRes.data.data.length === 0) {
+          // Si no encontramos por documentId, intentamos con el endpoint directo
+          console.log('Auditoría no encontrada por filtro, intentando directamente con ID');
+
+          // Opción 2: Tratar documentId como ID directo
+          const directRes = await axios.get(`https://backend-iso27001.onrender.com/api/auditorias/${documentId}`, {
+            params: { populate: ['controladors'] },
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          console.log('Direct auditoria response:', directRes.data);
+
+          if (!directRes.data.data) {
+            throw new Error('Auditoría no encontrada');
+          }
+
+          const auditoriaData = directRes.data.data;
+          const auditoriaObj = auditoriaData.attributes
+            ? { id: auditoriaData.id, ...auditoriaData.attributes }
+            : auditoriaData;
+
+          console.log('Parsed auditoria object:', auditoriaObj);
+          setAuditoria(auditoriaObj);
+          await fetchResultados(auditoriaObj);
+        } else {
+          // Procesamos los resultados del filtro
+          const auditoriaData = auditoriaRes.data.data[0];
+          const auditoriaObj = auditoriaData.attributes
+            ? { id: auditoriaData.id, ...auditoriaData.attributes }
+            : auditoriaData;
+
+          console.log('Parsed auditoria object:', auditoriaObj);
+          setAuditoria(auditoriaObj);
+          await fetchResultados(auditoriaObj);
+        }
       } catch (err: any) {
         console.error('Error fetching auditoria completa:', err);
         setError(err.message || 'Error cargando datos');
@@ -199,8 +228,9 @@ const EvaluateAuditoria = () => {
     };
 
     fetchAuditoria();
-  }, [title]);
+  }, [documentId]);
 
+  // AQUÍ ESTÁ EL CAMBIO PRINCIPAL: Modificamos guardarEvaluacion para actualizar el progreso
   const guardarEvaluacion = async () => {
     if (!auditoria) {
       console.warn('No hay auditoria cargada, no se puede guardar');
@@ -236,10 +266,15 @@ const EvaluateAuditoria = () => {
           evidencias: currentResult.evidencias || [],
           fechaEvaluacion: new Date().toISOString(),
           controlador: currentControlador.id,
-          auditoria: auditoria.id,
+          auditoria: auditoria.id,  // Mantenemos esta forma por ahora
           evaluadoPor: userId,
         },
       };
+
+      // Agregar logs detallados para depuración
+      console.log('Payload para guardar:', JSON.stringify(payload, null, 2));
+      console.log('ID de auditoría:', auditoria.id);
+      console.log('ID de controlador:', currentControlador.id);
 
       console.log('Payload para guardar:', payload);
 
@@ -263,11 +298,25 @@ const EvaluateAuditoria = () => {
         currentResult = { ...currentResult, id: nuevoId, documentId: nuevoDocumentId };
       }
 
+      // Actualizar el estado local de resultados
       setResultados((prev) => ({
         ...prev,
         [key]: currentResult,
       }));
+
+      // Actualizar el contexto de resultados
       await refreshResultados();
+
+      // NUEVO: Calcular y actualizar el progreso después de guardar
+      // Contar cuántos controles tienen resultados ahora
+      const totalControles = auditoria.controladors.length;
+      const resultadosKeys = Object.keys(resultados);
+      const evaluados = resultadosKeys.filter(k => k.startsWith(`${auditoria.id}-`)).length +
+        (resultados[key] ? 0 : 1); // +1 si es nuevo resultado
+
+      // Actualizar el progreso usando nuestra utilidad centralizada
+      updateProgressAfterEvaluation(auditoria.id, evaluados, totalControles);
+      console.log(`Progreso actualizado: ${evaluados}/${totalControles} controles evaluados`);
 
       console.log('Respuesta al guardar:', response.data);
       setSuccessMessage('Evaluación guardada correctamente');
@@ -280,6 +329,7 @@ const EvaluateAuditoria = () => {
     }
   };
 
+  // Funciones auxiliares sin cambios
   const getResultadoColor = (tipo: ResultadoTipo) => {
     switch (tipo) {
       case ResultadoTipo.CONFORME:
@@ -325,6 +375,7 @@ const EvaluateAuditoria = () => {
     }
   };
 
+  // Renderizado condicional sin cambios
   if (loading) {
     return (
       <DashboardLayout>
@@ -540,4 +591,4 @@ const EvaluateAuditoria = () => {
   );
 };
 
-export default EvaluateAuditoria;
+export default EvaluateAuditoria; 
