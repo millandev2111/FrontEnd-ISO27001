@@ -39,17 +39,7 @@ const EstadoButtons: React.FC<EstadoButtonsProps> = ({
                     <Clock className="h-4 w-4" />
                     <span>En Progreso</span>
                 </button>
-                <button
-                    onClick={() => onStateChange('Completada')}
-                    disabled={actualizandoEstado || currentState === 'Completada'}
-                    className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${actualizandoEstado || currentState === 'Completada'
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            : 'bg-emerald-200 text-emerald-700 hover:bg-emerald-300'
-                        }`}
-                >
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Completada</span>
-                </button>
+                
             </div>
             {actualizandoEstado && (
                 <div className="text-blue-600 mt-2 flex items-center">

@@ -103,13 +103,11 @@ export const calculateProgress = async (
     return { progreso: 0, controlesEvaluados: 0 };
   }
   
-  console.log('Calculando progreso para auditoría:', documentId);
   
   try {
     // Verificar si hay progreso en caché primero
     const cachedProgress = loadProgress(documentId);
     if (cachedProgress) {
-      console.log(`Usando progreso en caché: ${cachedProgress.progreso}%`);
       return cachedProgress;
     }
     

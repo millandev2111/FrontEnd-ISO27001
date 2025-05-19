@@ -17,9 +17,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ estado }) => {
             case 'completada':
             case 'completed':
                 return <CheckCircle className="h-4 w-4 mr-1" />;
-            case 'pendiente':
-            case 'pending':
-                return <Clipboard className="h-4 w-4 mr-1" />;
+           
             default:
                 return <AlertCircle className="h-4 w-4 mr-1" />;
         }
@@ -28,7 +26,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ estado }) => {
     return (
         <div className={`px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center ${getStatusColor(estado || 'pending')}`}>
             {getIcon()}
-            {estado || 'Pendiente'}
+            {estado || 'En Progreso'}
         </div>
     );
 };

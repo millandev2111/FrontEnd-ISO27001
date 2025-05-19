@@ -84,10 +84,8 @@ export const useAuditoriaState = (documentId: string) => {
           // Sugerir estado según progreso
           if (progressData.progreso === 100 && data.state !== 'Completada') {
             setEstadoSugerido('Completada');
-          } else if (progressData.progreso > 0 && progressData.progreso < 100 && data.state !== 'En Progreso') {
+          } else if (progressData.progreso >= 0 && progressData.progreso < 100 && data.state !== 'En Progreso') {
             setEstadoSugerido('En Progreso');
-          } else if (progressData.progreso === 0 && data.state !== 'Pendiente') {
-            setEstadoSugerido('Pendiente');
           }
         } catch (error) {
           console.error('Error calculando progreso:', error);
