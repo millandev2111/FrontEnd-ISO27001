@@ -129,12 +129,18 @@ export const useAuditoriaState = (documentId: string) => {
         const auditoriaDocumentId = auditoria.documentId || documentId;
         const endpoint = `${API_BASE}/${auditoriaDocumentId}`;
 
+        // Enfoque 1: Usar connect para IDs regulares (más común)
         const payload = {
           data: {
             state: nuevoEstado,
+            resultados: {
+              connect: auditoria.resultados
+                ? auditoria.resultados.map((r: any) => r.documentId)
+                : []
+            }
           },
         };
-
+        // Actualizar el estado
         await axios.put(endpoint, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -142,9 +148,16 @@ export const useAuditoriaState = (documentId: string) => {
           },
         });
 
-        setAuditoria((prev: any) =>
-          prev ? { ...prev, state: nuevoEstado } : prev
-        );
+        // Obtener todos los datos actualizados con populate
+        const respuestaCompleta = await axios.get(`${endpoint}?populate=*`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Actualizar el estado local con la auditoría actualizada
+        setAuditoria(respuestaCompleta.data.data);
+
         setEstadoSugerido(null);
         toast.success(`Estado actualizado a: ${nuevoEstado}`);
       } catch (e: any) {
@@ -157,7 +170,6 @@ export const useAuditoriaState = (documentId: string) => {
     },
     [documentId, auditoria]
   );
-
   useEffect(() => {
     if (documentId) {
       fetchAuditoriaData();

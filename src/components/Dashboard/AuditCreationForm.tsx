@@ -100,7 +100,7 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
         const token = getAuthToken();
         if (!token) throw new Error('No se encontró el token de autenticación');
 
-        const controllersResponse = await axios.get('https://backend-iso27001.onrender.com/api/controladors', {
+        const controllersResponse = await axios.get('https://backend-iso27001.onrender.com/api/controladors?pagination[pageSize]=94', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'

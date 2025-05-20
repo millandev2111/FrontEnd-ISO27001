@@ -148,6 +148,35 @@ export const calculateProgressFromCounts = (
   const progreso = Math.min(100, Math.round((controlesEvaluados / totalControles) * 100));
   return { progreso, controlesEvaluados };
 };
+export const updateProgressAfterEvaluation = (
+  documentId: string,
+  evaluados: number,
+  total: number
+) => {
+  if (!documentId) {
+    console.error('No se puede actualizar progreso: documentId inválido');
+    return { progreso: 0, controlesEvaluados: 0 };
+  }
+  
+  // Calcular con protección contra valores negativos o incorrectos
+  const controlesEvaluados = Math.max(0, evaluados);
+  const totalControles = Math.max(1, total); // Evitar división por cero
+  
+  // Limitar progreso a máximo 100%
+  const progreso = Math.min(Math.round((controlesEvaluados / totalControles) * 100), 100);
+  
+  // Guardar en localStorage
+  const saved = saveProgress(documentId, progreso, controlesEvaluados);
+  
+  if (saved) {
+    console.log(`Progreso actualizado: ${progreso}% (${controlesEvaluados}/${totalControles})`);
+    toast.success(`Progreso actualizado: ${progreso}%`);
+  } else {
+    console.error('No se pudo guardar el progreso actualizado');
+  }
+  
+  return { progreso, controlesEvaluados };
+};
 
 /**
  * Limpia el progreso guardado para una auditoría

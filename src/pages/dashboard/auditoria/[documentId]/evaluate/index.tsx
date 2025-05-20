@@ -311,7 +311,7 @@ const EvaluateAuditoria = () => {
         (resultados[key] ? 0 : 1); // +1 si es nuevo resultado
 
       // Actualizar el progreso usando nuestra utilidad centralizada
-      updateProgressAfterEvaluation(auditoria.id, evaluados, totalControles);
+      updateProgressAfterEvaluation(auditoria.documentId, evaluados, totalControles);
       console.log(`Progreso actualizado: ${evaluados}/${totalControles} controles evaluados`);
 
       console.log('Respuesta al guardar:', response.data);
