@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import AuditoriaWidget from "@/components/Dashboard/AuditoriaWidget";
 import DashboardLayout from "./layout";
-import { PerformanceLineChart, AuditProgressPanel, AnalyticsPanel } from "@/components/Dashboard/DashboardCharts";
-import { NotificationsPanel, DailySummary } from "@/components/Dashboard/DashboardWidgets";
+import {  AuditProgressPanel } from "@/components/Dashboard/DashboardCharts";
+import { ResultsSummaryPanel, CapacitacionCallToAction } from "@/components/Dashboard/DashboardWidgets";
 import IsoKpiCards from "@/components/Dashboard/KpiCards";
 
 // Tipos para props del KpiCard
@@ -178,8 +178,8 @@ export default function DashboardModerno() {
 
             {/* Panel lateral (derecha) */}
             <div className="space-y-6">
-              <DailySummary />
-              <NotificationsPanel />
+              <CapacitacionCallToAction />
+              <ResultsSummaryPanel />
             </div>
           </div>
 
