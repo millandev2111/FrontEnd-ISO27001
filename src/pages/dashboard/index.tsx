@@ -174,7 +174,6 @@ export default function DashboardModerno() {
               </div>
 
               {/* Gráfico analítico */}
-              <AnalyticsPanel />
             </div>
 
             {/* Panel lateral (derecha) */}

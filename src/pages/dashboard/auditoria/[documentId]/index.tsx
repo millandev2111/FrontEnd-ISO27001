@@ -39,6 +39,7 @@ const AuditoriaDetalle = () => {
     error,
     progreso,
     controlesEvaluados,
+    totalControles,
     actualizandoEstado,
     estadoSugerido,
     fetchAuditoriaData,
@@ -48,18 +49,16 @@ const AuditoriaDetalle = () => {
   // Cargar resultados al inicio
   useEffect(() => {
     if (docId) {
-      console.log('Cargando resultados para docId:', docId);
       refreshResultados(true);
     }
   }, [docId, refreshResultados]);
 
-  // Calcular fechas y progreso de manera segura
+  // Calcular fechas y progreso de manera segura y sin valores arbitrarios
   const {
     fechaInicio,
     fechaFin,
     diasRestantes,
     pendientes,
-    totalControles,
   } = useMemo(() => {
     if (!auditoria) {
       return {
@@ -67,38 +66,28 @@ const AuditoriaDetalle = () => {
         fechaFin: 'Fecha no disponible',
         diasRestantes: 0,
         pendientes: 0,
-        totalControles: 0,
       };
     }
-    
-    // Valor predeterminado para totalControles = 1
-    const totalCtrl = 1;
-    
-    // Calcular fechas usando valores con comprobación de seguridad
+
     const fInicio = formatearFecha(auditoria.startDate || auditoria.attributes?.startDate || '');
     const fFin = formatearFecha(auditoria.endDate || auditoria.attributes?.endDate || '');
     const diasRest = calcularDiasRestantes(auditoria.endDate || auditoria.attributes?.endDate || '');
-    
-    console.log('Valores calculados:', {
-      fechaInicio: fInicio,
-      fechaFin: fFin,
-      diasRestantes: diasRest,
-      pendientes: totalCtrl - controlesEvaluados,
-      totalControles: totalCtrl,
-      progreso: progreso
-    });
-    
+
+    const evaluados = controlesEvaluados || 0;
+    const total = totalControles || 0;
+    const pendientesCalc = Math.max(total - evaluados, 0);
+
     return {
       fechaInicio: fInicio,
       fechaFin: fFin,
       diasRestantes: diasRest,
-      pendientes: totalCtrl - controlesEvaluados,
-      totalControles: totalCtrl,
+      pendientes: pendientesCalc,
     };
-  }, [auditoria, controlesEvaluados, progreso]);
+  }, [auditoria, controlesEvaluados, totalControles]);
 
   // Navegar a evaluación
   const handleEvaluateClick = useCallback(() => {
+    if (!docId) return;
     router.push(`/dashboard/auditoria/${docId}/evaluate`);
   }, [router, docId]);
 
@@ -126,11 +115,12 @@ const AuditoriaDetalle = () => {
   // Función auxiliar para obtener datos seguros
   const getAuditoriaValue = (key: string, defaultValue: string = ''): string => {
     if (!auditoria) return defaultValue;
-    
-    // Buscar primero en la raíz, luego en attributes
-    return auditoria[key] || 
-           (auditoria.attributes ? auditoria.attributes[key] : null) || 
-           defaultValue;
+
+    return (
+      auditoria[key] ||
+      (auditoria.attributes ? auditoria.attributes[key] : null) ||
+      defaultValue
+    );
   };
 
   if (!docId) {
@@ -197,7 +187,7 @@ const AuditoriaDetalle = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <StatusBadge estado={getAuditoriaValue('state', 'Pendiente')} />
+              <StatusBadge estado={getAuditoriaValue('state', 'En Progreso')} />
 
               <button
                 onClick={handleEvaluateClick}
@@ -231,7 +221,7 @@ const AuditoriaDetalle = () => {
             <InfoDetail auditoria={auditoria} fechaInicio={fechaInicio} fechaFin={fechaFin} />
 
             <EstadoButtons
-              currentState={getAuditoriaValue('state', 'Pendiente')}
+              currentState={getAuditoriaValue('state', 'En Progreso')}
               actualizandoEstado={actualizandoEstado}
               onStateChange={handleActualizarEstado}
             />
@@ -274,7 +264,7 @@ const AuditoriaDetalle = () => {
 
             <StatCard
               title="Pendientes"
-              value={pendientes}
+              value={Math.max(totalControles - controlesEvaluados, 0)}
               icon={<Clock />}
               bgColor="bg-amber-50"
               borderColor="border-amber-100"

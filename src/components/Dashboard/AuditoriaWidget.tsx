@@ -4,7 +4,7 @@ import axios from 'axios'
 import { useRouter } from 'next/router'
 import { useResultados } from '@/context/ResultadosContext'
 import { getCookie } from 'cookies-next'
-import { loadProgress, calculateProgress } from '@/utils/progressUtils' // Importamos las utilidades de progreso
+import { loadProgress, saveProgress, calculateProgressFromCounts } from '@/utils/progressUtils' // Usamos calculateProgress real
 
 interface Controlador {
   id: number
@@ -24,7 +24,6 @@ interface AuditoriaData {
   title: string
   state: string
   controladors?: Controlador[]
-  // Añadimos campos para el progreso
   progreso?: number
   controlesEvaluados?: number
 }
@@ -37,15 +36,14 @@ const AuditoriaWidget = () => {
   const [error, setError] = useState<string | null>(null)
 
   const getAuthToken = () => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') return null
     const token = getCookie('auth_token')
     return typeof token === 'string' ? token : null
   }
 
-  // Asegúrate de que los resultados estén actualizados
   useEffect(() => {
-    refreshResultados(true);
-  }, [refreshResultados]);
+    refreshResultados(true)
+  }, [refreshResultados])
 
   useEffect(() => {
     fetchAuditoriasData()
@@ -53,93 +51,88 @@ const AuditoriaWidget = () => {
 
   const fetchAuditoriasData = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
-      const token = getAuthToken()
-      if (!token) throw new Error('No se encontró el token de autenticación')
+      const token = getAuthToken();
+      if (!token) throw new Error('No se encontró el token de autenticación');
 
       const response = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
         params: { populate: ['controladors'] },
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-      })
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
 
       let transformedData = response.data.data.map((item: any) => {
-        // Extrae documentId y otros campos
         let result: any = { id: item.id };
-        
+
         if (item.attributes) {
-          // Asegúrate de que documentId esté presente
           result.documentId = item.attributes.documentId || '';
           result.title = item.attributes.title || '';
           result.state = item.attributes.state || '';
-          
-          // Manejar controladores correctamente
+
           if (item.attributes.controladors && item.attributes.controladors.data) {
-            // Strapi v4 estructura anidada
             result.controladors = item.attributes.controladors.data.map((controlador: any) => ({
               id: controlador.id,
-              ...controlador.attributes
+              ...controlador.attributes,
             }));
           } else if (item.attributes.controladors && Array.isArray(item.attributes.controladors)) {
-            // Estructura directa
             result.controladors = item.attributes.controladors;
           } else {
             result.controladors = [];
           }
         } else {
-          // Si no hay attributes (estructura plana)
           result = { ...item };
           result.documentId = result.documentId || '';
           result.controladors = result.controladors || [];
         }
-        
+
         return result;
       });
 
-      // Cargar el progreso para cada auditoría usando la misma función que usa el resto de la aplicación
       for (let i = 0; i < transformedData.length; i++) {
         const auditoria = transformedData[i];
         if (auditoria.documentId) {
           try {
-            // Primero intentar cargar desde localStorage (como hace useAuditoriaState)
             const cachedProgress = loadProgress(auditoria.documentId);
-            
             if (cachedProgress) {
               auditoria.progreso = cachedProgress.progreso;
               auditoria.controlesEvaluados = cachedProgress.controlesEvaluados;
             } else {
-              // Si no hay caché, calcular usando la misma función que useAuditoriaState
               const totalControles = auditoria.controladors?.length || 1;
-              const progressData = await calculateProgress(auditoria.documentId, totalControles);
-              
-              
+
+              // Aquí debes calcular los controles evaluados si tienes la info, sino asumo 0
+              const evaluados = 0;
+
+              const progressData = calculateProgressFromCounts(evaluados, totalControles);
+
               auditoria.progreso = progressData.progreso;
               auditoria.controlesEvaluados = progressData.controlesEvaluados;
+
+              saveProgress(auditoria.documentId, progressData.progreso, progressData.controlesEvaluados);
             }
           } catch (error) {
             console.error(`Error cargando progreso para ${auditoria.title}:`, error);
-            // Valores por defecto en caso de error
             auditoria.progreso = 0;
             auditoria.controlesEvaluados = 0;
           }
         }
       }
 
-      setAuditorias(transformedData)
-      setError(null)
+      setAuditorias(transformedData);
+      setError(null);
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        if (err.response?.status === 403) setError('No tienes permisos para acceder a las auditorías')
-        else if (err.response?.status === 401) setError('Token inválido o expirado')
-        else if (err.response?.data?.error?.message) setError(err.response.data.error.message)
-        else setError('Error al cargar las auditorías')
-      } else if (err instanceof Error) setError(err.message)
-      else setError('Error desconocido')
+        if (err.response?.status === 403) setError('No tienes permisos para acceder a las auditorías');
+        else if (err.response?.status === 401) setError('Token inválido o expirado');
+        else if (err.response?.data?.error?.message) setError(err.response.data.error.message);
+        else setError('Error al cargar las auditorías');
+      } else if (err instanceof Error) setError(err.message);
+      else setError('Error desconocido');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
 
   if (loading) {
     return (
@@ -177,22 +170,21 @@ const AuditoriaWidget = () => {
   }
 
   const getProgressColor = (progress: number) => {
-    if (progress < 30) return 'text-red-500';
-    if (progress < 70) return 'text-yellow-500';
-    return 'text-green-500';
-  };
+    if (progress < 30) return 'text-red-500'
+    if (progress < 70) return 'text-yellow-500'
+    return 'text-green-500'
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {auditorias.map((auditoria) => {
-        // Usar el progreso calculado por la función común, no calcular aquí
-        const progress = auditoria.progreso || 0;
-        const completedControls = auditoria.controlesEvaluados || 0;
-        const totalControls = auditoria.controladors?.length || 1;
-        
-        const progressColor = getProgressColor(progress);
-        const circumference = 2 * Math.PI * 40; // Radio = 40
-        const dashoffset = circumference - (progress / 100) * circumference;
+        const progress = auditoria.progreso || 0
+        const completedControls = auditoria.controlesEvaluados || 0
+        const totalControls = auditoria.controladors?.length || 1
+
+        const progressColor = getProgressColor(progress)
+        const circumference = 2 * Math.PI * 40 // Radio = 40
+        const dashoffset = circumference - (progress / 100) * circumference
 
         return (
           <div key={auditoria.id} className="bg-white shadow-lg rounded-lg p-6 w-full">
@@ -200,18 +192,9 @@ const AuditoriaWidget = () => {
 
             <div className="flex flex-col items-center mb-4">
               <div className="relative w-32 h-32">
-                {/* Base circle */}
                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#e5e7eb"
-                    strokeWidth="10"
-                  />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="10" />
 
-                  {/* Progress circle with animation */}
                   <circle
                     cx="50"
                     cy="50"
@@ -226,7 +209,6 @@ const AuditoriaWidget = () => {
                   />
                 </svg>
 
-                {/* Percentage text in the middle */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <span className={`text-2xl font-bold ${progressColor}`}>{progress}%</span>
@@ -237,7 +219,9 @@ const AuditoriaWidget = () => {
 
             <div className="text-center mt-2">
               <p className="text-sm text-gray-600">Controladores Evaluados:</p>
-              <p className="font-semibold text-gray-800">{completedControls} de {totalControls}</p>
+              <p className="font-semibold text-gray-800">
+                {completedControls} de {totalControls}
+              </p>
             </div>
 
             <div className="mt-6">
@@ -249,9 +233,7 @@ const AuditoriaWidget = () => {
                   <span>Evaluar cumplimiento</span>
                 </button>
               ) : (
-                <button
-                  className="w-full bg-gray-400 text-white py-2 rounded-md transition-colors duration-200 flex items-center justify-center cursor-not-allowed"
-                >
+                <button className="w-full bg-gray-400 text-white py-2 rounded-md transition-colors duration-200 flex items-center justify-center cursor-not-allowed">
                   <span>ID no disponible</span>
                 </button>
               )}
