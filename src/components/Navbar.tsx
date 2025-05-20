@@ -73,7 +73,7 @@ export default function Navbar() {
               <Link href="/dashboard" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">
                 Dashboard
               </Link>
-              <Link href="/labs" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">
+              <Link href="/about" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">
                 Sobre Nosotros
               </Link>
               <Link href="/login" className="text-black hover:text-gray-700 px-3 py-2 font-medium transition-colors">

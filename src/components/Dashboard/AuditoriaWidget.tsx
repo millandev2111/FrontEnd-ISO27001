@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useRouter } from 'next/router'
 import { useResultados } from '@/context/ResultadosContext'
 import { getCookie } from 'cookies-next'
+import { loadProgress, calculateProgress } from '@/utils/progressUtils' // Importamos las utilidades de progreso
 
 interface Controlador {
   id: number
@@ -19,9 +20,13 @@ interface Controlador {
 
 interface AuditoriaData {
   id: number
+  documentId: string
   title: string
   state: string
   controladors?: Controlador[]
+  // Añadimos campos para el progreso
+  progreso?: number
+  controlesEvaluados?: number
 }
 
 const AuditoriaWidget = () => {
@@ -37,6 +42,10 @@ const AuditoriaWidget = () => {
     return typeof token === 'string' ? token : null
   }
 
+  // Asegúrate de que los resultados estén actualizados
+  useEffect(() => {
+    refreshResultados(true);
+  }, [refreshResultados]);
 
   useEffect(() => {
     fetchAuditoriasData()
@@ -56,15 +65,66 @@ const AuditoriaWidget = () => {
       })
 
       let transformedData = response.data.data.map((item: any) => {
+        // Extrae documentId y otros campos
+        let result: any = { id: item.id };
+        
         if (item.attributes) {
-          const { id: _, ...restAttributes } = item.attributes
-          return {
-            id: item.id,
-            ...restAttributes
+          // Asegúrate de que documentId esté presente
+          result.documentId = item.attributes.documentId || '';
+          result.title = item.attributes.title || '';
+          result.state = item.attributes.state || '';
+          
+          // Manejar controladores correctamente
+          if (item.attributes.controladors && item.attributes.controladors.data) {
+            // Strapi v4 estructura anidada
+            result.controladors = item.attributes.controladors.data.map((controlador: any) => ({
+              id: controlador.id,
+              ...controlador.attributes
+            }));
+          } else if (item.attributes.controladors && Array.isArray(item.attributes.controladors)) {
+            // Estructura directa
+            result.controladors = item.attributes.controladors;
+          } else {
+            result.controladors = [];
+          }
+        } else {
+          // Si no hay attributes (estructura plana)
+          result = { ...item };
+          result.documentId = result.documentId || '';
+          result.controladors = result.controladors || [];
+        }
+        
+        return result;
+      });
+
+      // Cargar el progreso para cada auditoría usando la misma función que usa el resto de la aplicación
+      for (let i = 0; i < transformedData.length; i++) {
+        const auditoria = transformedData[i];
+        if (auditoria.documentId) {
+          try {
+            // Primero intentar cargar desde localStorage (como hace useAuditoriaState)
+            const cachedProgress = loadProgress(auditoria.documentId);
+            
+            if (cachedProgress) {
+              auditoria.progreso = cachedProgress.progreso;
+              auditoria.controlesEvaluados = cachedProgress.controlesEvaluados;
+            } else {
+              // Si no hay caché, calcular usando la misma función que useAuditoriaState
+              const totalControles = auditoria.controladors?.length || 1;
+              const progressData = await calculateProgress(auditoria.documentId, totalControles);
+              
+              
+              auditoria.progreso = progressData.progreso;
+              auditoria.controlesEvaluados = progressData.controlesEvaluados;
+            }
+          } catch (error) {
+            console.error(`Error cargando progreso para ${auditoria.title}:`, error);
+            // Valores por defecto en caso de error
+            auditoria.progreso = 0;
+            auditoria.controlesEvaluados = 0;
           }
         }
-        return item
-      })
+      }
 
       setAuditorias(transformedData)
       setError(null)
@@ -79,14 +139,6 @@ const AuditoriaWidget = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const slugify = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
   }
 
   if (loading) {
@@ -133,22 +185,11 @@ const AuditoriaWidget = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {auditorias.map((auditoria) => {
-        const totalControls = auditoria.controladors?.length || 0
-        const completedControls = auditoria.controladors
-          ?.filter(c => {
-            const controladorId = c.id;
-            const clave = `${auditoria.id}-${controladorId}`;
-            const resultado = resultados[clave];
-            return (
-              resultado &&
-              typeof resultado.tipo === 'string' &&
-              resultado.tipo.trim() !== ''
-            );
-          })
-          .length || 0
-
-
-        const progress = totalControls > 0 ? Math.round((completedControls / totalControls) * 100) : 0
+        // Usar el progreso calculado por la función común, no calcular aquí
+        const progress = auditoria.progreso || 0;
+        const completedControls = auditoria.controlesEvaluados || 0;
+        const totalControls = auditoria.controladors?.length || 1;
+        
         const progressColor = getProgressColor(progress);
         const circumference = 2 * Math.PI * 40; // Radio = 40
         const dashoffset = circumference - (progress / 100) * circumference;
@@ -200,12 +241,20 @@ const AuditoriaWidget = () => {
             </div>
 
             <div className="mt-6">
-              <button
-                onClick={() => router.push(`/dashboard/auditoria/${slugify(auditoria.title)}`)}
-                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center"
-              >
-                <span>Evaluar cumplimiento</span>
-              </button>
+              {auditoria.documentId ? (
+                <button
+                  onClick={() => router.push(`/dashboard/auditoria/${auditoria.documentId}`)}
+                  className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center"
+                >
+                  <span>Evaluar cumplimiento</span>
+                </button>
+              ) : (
+                <button
+                  className="w-full bg-gray-400 text-white py-2 rounded-md transition-colors duration-200 flex items-center justify-center cursor-not-allowed"
+                >
+                  <span>ID no disponible</span>
+                </button>
+              )}
             </div>
           </div>
         )
