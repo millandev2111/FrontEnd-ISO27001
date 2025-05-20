@@ -184,7 +184,7 @@ const IsoKpiCards: React.FC = () => {
         
         // Cargar controladores (con endpoint corregido)
         apiPromises.push(
-          axios.get(`${API_BASE}/controladors`, config)
+          axios.get(`${API_BASE}/controladors?pagination[pageSize]=93`, config)
             .then(response => {
               console.log('Datos de controladores recibidos:', response.data);
               // Verificar la estructura real de la respuesta para adaptar

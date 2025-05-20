@@ -25,7 +25,7 @@ export default function Sidebar() {
         { id: 'dashboard', label: 'Inicio', icon: <Home size={20} />, href: '/dashboard' },
         { id: 'auditoria', label: 'Auditorías', icon: <FileText size={20} />, href: '/dashboard/auditoria' },
         { id: 'capacitacion', label: 'Módulos de Capacitación', icon: <BookOpen size={20} />, href: '/dashboard/modulos-capacitacion' },
-        { id: 'evaluaciones', label: 'Evaluaciones', icon: <ClipboardCheck size={20} />, href: '/dashboard/evaluaciones' },
+        { id: 'evaluaciones', label: 'Resultados', icon: <ClipboardCheck size={20} />, href: '/dashboard/evaluaciones' },
         { id: 'soporte', label: 'Soporte', icon: <LifeBuoy size={20} />, href: '/dashboard/soporte' },
     ];
 

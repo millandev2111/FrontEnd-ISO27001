@@ -49,7 +49,7 @@ export const useAuditoriaState = (documentId: string) => {
       // Añadir timestamp para evitar caché del navegador
       const timestamp = new Date().getTime();
       
-      const res = await axios.get(`${API_BASE}`, {
+      const res = await axios.get(`${API_BASE}?populate=*`, {
         headers: { Authorization: `Bearer ${token}` },
         params: {
           filters: { documentId: { $eq: documentId } },
