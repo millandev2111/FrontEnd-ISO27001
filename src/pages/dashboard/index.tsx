@@ -7,14 +7,14 @@ import DashboardLayout from "./layout";
 export default function Dashboard() {
   return (
     <DashboardLayout>
-      <div className="flex h-screen bg-white">
+      <div className="flex h-fit bg-white">
         {/* Sidebar */}
 
         {/* Main Content */}
 
           {/* Dashboard Content */}
           <div className="flex-1 p-6 bg-gray-50">
-            <h1 className="text-2xl font-medium mb-6">Tu Actividad</h1>
+            <h1 className="text-2xl text-black font-medium mb-6">Tu Actividad</h1>
 
             {/* KPI Cards */}
             <KpiCards />
