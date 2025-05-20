@@ -271,12 +271,8 @@ const EvaluateAuditoria = () => {
         },
       };
 
-      // Agregar logs detallados para depuración
-      console.log('Payload para guardar:', JSON.stringify(payload, null, 2));
-      console.log('ID de auditoría:', auditoria.id);
-      console.log('ID de controlador:', currentControlador.id);
+      
 
-      console.log('Payload para guardar:', payload);
 
       let response;
       if (currentResult.documentId) {

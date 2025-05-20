@@ -78,7 +78,7 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
   const [availableControllers, setAvailableControllers] = useState<Controller[]>([]);
 
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({
-    A: true,
+    A: false,
     B: false,
     C: false,
     D: false
