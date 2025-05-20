@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/router'
-import { setCookie } from 'cookies-next' // Necesitarás instalar este paquete
+import { setCookie } from 'cookies-next'
 
 const Login = () => {
   const [email, setEmail] = useState('')
