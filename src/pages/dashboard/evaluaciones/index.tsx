@@ -20,13 +20,14 @@ import AuditoriaSelector from '@/components/Resultados/AuditoriaSelector';
 import ResumenCard from '@/components/Resultados/ResumenCard';
 import GraficoDominio from '@/components/Resultados/GraficoDominio';
 import TablaResultados from '@/components/Resultados/TablaResultados';
+import ExportPDFButton from '@/components/Resultados/ExportPDFButton';
 
 const EvaluacionesPage = () => {
   const router = useRouter();
-  
+
   // Estado para almacenar la auditoría seleccionada
   const [selectedAuditoriaId, setSelectedAuditoriaId] = useState<string | null>(null);
-  
+
   // Estado para mostrar/ocultar el menú de informes
   const [mostrarInformes, setMostrarInformes] = useState(false);
 
@@ -113,35 +114,27 @@ const EvaluacionesPage = () => {
                   <FileText className="h-4 w-4" />
                   <span>Generar Informe</span>
                 </button>
-                
+
                 {/* Menú desplegable de informes */}
                 {mostrarInformes && (
                   <div className="absolute right-0 mt-2 z-10 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
                     <div className="py-1" role="menu" aria-orientation="vertical">
-                      <button
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        role="menuitem"
-                        onClick={() => {
-                          toast.success('Descargando informe PDF...');
-                          // Aquí iría la lógica para generar y descargar el PDF
-                          setMostrarInformes(false);
+                      <ExportPDFButton
+                        auditoriaInfo={{
+                          id: selectedAuditoriaId || '',
+                          titulo: "Evaluación de Controles ISO 27001", 
+                          periodo: `${new Date().getFullYear()}`,
+                          auditores: "Equipo de Seguridad de la Información",
+                          auditor: "Especialista de Seguridad", // Nombre del auditor principal
+                          aprobador: "Director de Seguridad", // Aprobador del informe
+                          descripcion: "Evaluación de cumplimiento de controles de seguridad ISO 27001:2022" // Descripción más detallada
                         }}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Descargar PDF
-                      </button>
-                      <button
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        role="menuitem"
-                        onClick={() => {
-                          toast.success('Preparando para imprimir...');
-                          window.print();
-                          setMostrarInformes(false);
-                        }}
-                      >
-                        <Printer className="h-4 w-4 mr-2" />
-                        Imprimir evaluación
-                      </button>
+                        resultados={resultadosFiltrados}
+                        resumen={resumen || {}}
+                        onClose={() => setMostrarInformes(false)}
+                      />
+
+
                     </div>
                   </div>
                 )}
@@ -207,7 +200,7 @@ const EvaluacionesPage = () => {
                   <GraficoDominio resultadosPorDominio={resumen.resultadosPorDominio} />
                 </div>
               </div>
-              
+
               {/* Tabla de resultados */}
               <TablaResultados resultados={resultadosFiltrados} loading={loadingResultados} />
             </>
