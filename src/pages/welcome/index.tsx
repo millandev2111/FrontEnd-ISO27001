@@ -2,15 +2,16 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { getCookie } from 'cookies-next'
 
 export default function Welcome() {
   const router = useRouter()
 
   // Asegurarnos de que el usuario esté logueado
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') // O el método que utilices para guardar el token
+    const token = getCookie('auth_token')
     if (!token) {
-      router.push('/login') // Si no está logueado, redirigir al login
+      router.push('/login')
     }
   }, [router])
 
