@@ -16,9 +16,7 @@ export default function Sidebar() {
             setActiveItem('capacitacion');
         } else if (path.includes('/dashboard/evaluaciones')) {
             setActiveItem('evaluaciones');
-        } else if (path.includes('/dashboard/soporte')) {
-            setActiveItem('soporte');
-        }
+        } 
     }, []);
 
     const menuItems = [
@@ -26,7 +24,6 @@ export default function Sidebar() {
         { id: 'auditoria', label: 'Auditorías', icon: <FileText size={20} />, href: '/dashboard/auditoria' },
         { id: 'capacitacion', label: 'Módulos de Capacitación', icon: <BookOpen size={20} />, href: '/dashboard/modulos-capacitacion' },
         { id: 'evaluaciones', label: 'Resultados', icon: <ClipboardCheck size={20} />, href: '/dashboard/evaluaciones' },
-        { id: 'soporte', label: 'Soporte', icon: <LifeBuoy size={20} />, href: '/dashboard/soporte' },
     ];
 
     return (
