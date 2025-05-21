@@ -19,7 +19,7 @@ const index = () => {
 
   useEffect(() => {
     setCargando(true)
-    axios.get('http://localhost:1337/api/capacitacions')
+    axios.get('https://backend-iso27001.onrender.com/api/capacitacions')
       .then(res => {
         setPreguntas(res.data.data)
       })
