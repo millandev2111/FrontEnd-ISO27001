@@ -52,16 +52,16 @@ const Login = () => {
   }
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 h-screen bg-blue-50">
+    <section className="grid grid-cols-1 md:grid-cols-2 h-screen  bg-blue-50">
       {/* Hero Section - Fondo Sólido */}
-      <div className="h-full w-full bg-blue-500 flex justify-center items-center">
-        <div className="m-12 w-1/3 md:w-2/5">
-          <h1 className="text-white text-3xl font-bold">MyApp</h1>
-        </div>
+      <div
+        className="w-full h-full bg-[url('/assets/imglogin.webp')]  bg-no-repeat bg-cover bg-center  flex justify-center items-center"
+      >
+        {/* Aquí podrías poner un logo o texto */}
       </div>
 
       {/* Form Section */}
-      <div className="flex flex-col justify-center items-center h-full p-10">
+      <div className="flex flex-col justify-center items-center h-full p-10 w-full">
         <div className="max-w-xl w-full bg-white p-10 rounded-lg shadow-lg">
           {/* Form Title */}
           <div className="flex items-center gap-4 mb-6">
@@ -120,20 +120,11 @@ const Login = () => {
             >
               {isLoading ? 'Processing...' : 'Login'}
             </button>
-
-            {/* Links */}
-          {/*  <div className="flex justify-between w-full mt-4">
-              <a href="/create-account" className="text-blue-500">
-                Create an account
-              </a>
-              <a href="/recover-password" className="text-blue-500">
-                Recover your password
-              </a>
-            </div> */}
           </form>
         </div>
       </div>
     </section>
+
   )
 }
 

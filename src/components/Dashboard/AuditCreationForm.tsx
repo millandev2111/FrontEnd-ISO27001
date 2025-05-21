@@ -238,7 +238,6 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
         }
       };
 
-      console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
 
       const response = await axios.post('https://backend-iso27001.onrender.com/api/auditorias', payload, {
         headers: {
@@ -247,7 +246,6 @@ const AuditCreationForm: React.FC<AuditCreationFormProps> = ({ onClose, onSucces
         }
       });
 
-      console.log('Auditoría creada:', response.data);
 
       if (onSuccess) onSuccess();
       onClose();

@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  ChartOptions, // Añadir esta importación
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import axios from 'axios';
@@ -120,6 +121,7 @@ export const AuditCompletionChart = () => {
     return 'rgba(239, 68, 68, 0.8)'; // Rojo para poco progreso
   };
 
+  // Usar una aserción de tipo para las opciones
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -137,15 +139,18 @@ export const AuditCompletionChart = () => {
         boxPadding: 5,
         cornerRadius: 8,
         callbacks: {
-          label: function(context: TooltipContext) {
+          label: function(context: any) {
             return `Progreso: ${context.raw}%`;
           },
-          title: function(context: TooltipContext[]) {
+          title: function(context: any[]) {
             return context[0].label;
           },
-          afterLabel: function(context: TooltipContext) {
-            const auditoria = auditorias[context.dataIndex];
-            return `Estado: ${auditoria?.state || 'No definido'}`;
+          afterLabel: function(context: any) {
+            const index = context.dataIndex;
+            if (index >= 0 && index < auditorias.length) {
+              return `Estado: ${auditorias[index].state}`;
+            }
+            return 'Estado: No definido';
           }
         }
       }
@@ -170,7 +175,7 @@ export const AuditCompletionChart = () => {
         }
       }
     }
-  };
+  } as ChartOptions<'bar'>;  // Usar aserción de tipo aquí
   
   // Preparar datos para el gráfico
   const chartData = {

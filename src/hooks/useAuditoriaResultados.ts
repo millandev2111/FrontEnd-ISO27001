@@ -131,7 +131,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
           if (resumen.resultadosPorDominio[dominio]) {
             resumen.resultadosPorDominio[dominio].evaluados++;
           }
-          
+
           if (resumen.resultadosPorCategoria[categoria]) {
             resumen.resultadosPorCategoria[categoria].evaluados++;
           }
@@ -173,10 +173,10 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
 
     // Calcular porcentajes
     const controlesAplicables = resumen.totalControles - resumen.noAplica;
-    
+
     if (controlesAplicables > 0) {
       resumen.porcentajeCompletitud = Math.round((resumen.evaluados / controlesAplicables) * 100);
-      
+
       if (resumen.evaluados > 0) {
         const evaluadosAplicables = resumen.evaluados - resumen.noAplica;
         if (evaluadosAplicables > 0) {
@@ -236,37 +236,37 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
             const controlesData = responseControles.data.data.map((item: any) => {
               // Normalizar estructura básica para controles
               const attributes = item.attributes || {};
-              
+
               // Intentar encontrar campos de código y nombre en cualquier lugar de la estructura
-              const code = 
-                attributes.code || 
-                item.code || 
-                attributes.codigo || 
+              const code =
+                attributes.code ||
+                item.code ||
+                attributes.codigo ||
                 item.codigo ||
                 (attributes.documentId ? `C-${attributes.documentId.substring(0, 5)}` : `C-${item.id}`);
-                
-              const name = 
-                attributes.name || 
-                item.name || 
-                attributes.title || 
-                item.title || 
-                attributes.nombre || 
-                item.nombre || 
-                attributes.ask || 
-                item.ask || 
+
+              const name =
+                attributes.name ||
+                item.name ||
+                attributes.title ||
+                item.title ||
+                attributes.nombre ||
+                item.nombre ||
+                attributes.ask ||
+                item.ask ||
                 'Sin nombre';
-              
+
               // Obtener el tipo (A, B, C, D) para usar como dominio
-              const tipo = 
-                attributes.type || 
-                item.type || 
-                attributes.tipo || 
+              const tipo =
+                attributes.type ||
+                item.type ||
+                attributes.tipo ||
                 item.tipo;
-              
+
               // Mapear el tipo a su nombre completo de dominio
               let domain = 'Sin dominio';
               if (tipo) {
-                switch(tipo) {
+                switch (tipo) {
                   case 'A':
                     domain = 'Controles Organizacionales';
                     break;
@@ -283,7 +283,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                     domain = `Tipo ${tipo}`;
                 }
               }
-              
+
               const control = {
                 id: item.id,
                 documentId: attributes.documentId || item.documentId || `control-${item.id}`,
@@ -293,7 +293,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                 category: attributes.category || item.category || 'Sin categoría',
                 domain: domain
               };
-              
+
               return control;
             });
 
@@ -319,10 +319,10 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
         const resultadosData = responseResultados.data.data.map((item: any) => {
           // Normalizar estructura
           const rawItem = item.attributes ? { ...item.attributes, id: item.id } : item;
-          
+
           // Determinar si está completado
           const estaCompletado = !!rawItem.fechaEvaluacion;
-          
+
           // Mapear tipo a cumplimiento (si existe)
           let cumplimiento = estaCompletado ? 'no evaluado' : undefined;
           if (rawItem.tipo) {
@@ -341,64 +341,64 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                 break;
             }
           }
-          
+
           // Verificar si hay relación con la auditoría
           let auditoriaId = null;
           if (rawItem.auditoria) {
-            auditoriaId = rawItem.auditoria.documentId || 
-                         (rawItem.auditoria.data && rawItem.auditoria.data.attributes ? 
-                          rawItem.auditoria.data.attributes.documentId : null);
+            auditoriaId = rawItem.auditoria.documentId ||
+              (rawItem.auditoria.data && rawItem.auditoria.data.attributes ?
+                rawItem.auditoria.data.attributes.documentId : null);
           }
-          
+
           // Identificar el control asociado
           let controlData: Control | undefined;
           let controlId = null;
-          
+
           // Buscar el controlador en diferentes lugares de la estructura
           const controladorDirecto = rawItem.controlador;
           const controladorData = rawItem.control && rawItem.control.data ? rawItem.control.data : null;
           const controladorRelacion = rawItem.control;
-          
+
           // Primero intentar con controlador directo
           if (controladorDirecto) {
             const controlRaw = controladorDirecto;
-            
+
             // Extraer propiedades de cualquier nivel de la estructura
             const controlAttributes = controlRaw.attributes || {};
-            
+
             // Buscar código en múltiples ubicaciones posibles
-            const code = 
-              controlRaw.code || 
-              controlAttributes.code || 
-              controlRaw.codigo || 
-              controlAttributes.codigo || 
+            const code =
+              controlRaw.code ||
+              controlAttributes.code ||
+              controlRaw.codigo ||
+              controlAttributes.codigo ||
               `C-${controlRaw.id}`;
-              
+
             // Buscar nombre en múltiples ubicaciones posibles
-            const name = 
-              controlRaw.name || 
-              controlAttributes.name || 
-              controlRaw.title || 
-              controlAttributes.title || 
-              controlRaw.nombre || 
-              controlAttributes.nombre || 
-              controlRaw.ask || 
-              controlAttributes.ask || 
+            const name =
+              controlRaw.name ||
+              controlAttributes.name ||
+              controlRaw.title ||
+              controlAttributes.title ||
+              controlRaw.nombre ||
+              controlAttributes.nombre ||
+              controlRaw.ask ||
+              controlAttributes.ask ||
               'Sin nombre';
-            
+
             // Obtener dominio basado en el tipo desde data.attributes
-            const tipo = 
-              controlAttributes.type || 
-              controlRaw.type || 
+            const tipo =
+              controlAttributes.type ||
+              controlRaw.type ||
               (controlRaw.code && controlRaw.code.startsWith('A.') ? 'A' :
-               controlRaw.code && controlRaw.code.startsWith('B.') ? 'B' :
-               controlRaw.code && controlRaw.code.startsWith('C.') ? 'C' :
-               controlRaw.code && controlRaw.code.startsWith('D.') ? 'D' : null);
-            
+                controlRaw.code && controlRaw.code.startsWith('B.') ? 'B' :
+                  controlRaw.code && controlRaw.code.startsWith('C.') ? 'C' :
+                    controlRaw.code && controlRaw.code.startsWith('D.') ? 'D' : null);
+
             // Mapear el tipo a su nombre completo de dominio
             let domain = 'Sin dominio';
             if (tipo) {
-              switch(tipo) {
+              switch (tipo) {
                 case 'A':
                   domain = 'Controles Organizacionales';
                   break;
@@ -419,7 +419,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
               // podemos intentar extraer el tipo del código
               const firstLetter = controlRaw.code.charAt(0);
               if (['A', 'B', 'C', 'D'].includes(firstLetter)) {
-                switch(firstLetter) {
+                switch (firstLetter) {
                   case 'A':
                     domain = 'Controles Organizacionales';
                     break;
@@ -435,40 +435,40 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                 }
               }
             }
-            
+
             controlData = {
               id: controlRaw.id,
               documentId: controlRaw.documentId || controlAttributes.documentId || `control-${controlRaw.id}`,
               code: code,
               name: name,
               description: controlRaw.description || controlAttributes.description || '',
-              category: 
-                controlRaw.category || 
-                controlAttributes.category || 
+              category:
+                controlRaw.category ||
+                controlAttributes.category ||
                 'Sin categoría',
               domain: domain
             };
-            
+
             controlId = controlData.documentId;
-          } 
+          }
           // Probar con la estructura control.data (formato Strapi común)
           else if (controladorData) {
             const controlAttributes = controladorData.attributes || {};
-            
-            const code = 
-              controladorData.code || 
-              controlAttributes.code || 
+
+            const code =
+              controladorData.code ||
+              controlAttributes.code ||
               `C-${controladorData.id}`;
-              
-            const name = 
-              controladorData.name || 
-              controlAttributes.name || 
-              controladorData.title || 
-              controlAttributes.title || 
-              controladorData.ask || 
-              controlAttributes.ask || 
+
+            const name =
+              controladorData.name ||
+              controlAttributes.name ||
+              controladorData.title ||
+              controlAttributes.title ||
+              controladorData.ask ||
+              controlAttributes.ask ||
               'Sin nombre';
-            
+
             controlData = {
               id: controladorData.id,
               documentId: controlAttributes.documentId || `control-${controladorData.id}`,
@@ -478,17 +478,17 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
               category: controlAttributes.category || controlAttributes.type || 'Sin categoría',
               domain: controlAttributes.domain || 'Sin dominio'
             };
-            
+
             controlId = controlData.documentId;
           }
           // Buscar por controlId si está disponible
           else if (rawItem.controlId || rawItem.controladorId) {
             const controlIdToSearch = rawItem.controlId || rawItem.controladorId;
-            
+
             // Intentar coincidir por ID numérico o documentId
             const controlPorId = controles.find(c => c.id === parseInt(controlIdToSearch) || c.id === controlIdToSearch);
             const controlPorDocumentId = controles.find(c => c.documentId === controlIdToSearch);
-            
+
             if (controlPorId) {
               controlData = controlPorId;
               controlId = controlPorId.documentId;
@@ -497,24 +497,25 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
               controlId = controlPorDocumentId.documentId;
             }
           }
-          
+
           // Si no se encontró, intentar encontrar controles a través de otras estructuras de relación
           if (!controlData) {
             // Buscar en toda la estructura para encontrar cualquier objeto que parezca un control
-            const searchForControlFields = (obj: any, path = '') => {
-              if (!obj || typeof obj !== 'object') return;
-              
+            // Definir un tipo de retorno explícito para searchForControlFields
+            const searchForControlFields = (obj: any, path = ''): Control | null => {
+              if (!obj || typeof obj !== 'object') return null;
+
               // Buscar campos que puedan ser un control
               if (obj.code && (obj.name || obj.title || obj.ask)) {
                 // Buscar el tipo (A, B, C, D) para usar como dominio
-                const tipo = 
-                  obj.type || 
+                const tipo =
+                  obj.type ||
                   obj.tipo;
-                
+
                 // Mapear el tipo a su nombre completo de dominio
                 let domain = 'Sin dominio';
                 if (tipo) {
-                  switch(tipo) {
+                  switch (tipo) {
                     case 'A':
                       domain = 'Controles Organizacionales';
                       break;
@@ -531,8 +532,8 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                       domain = `Tipo ${tipo}`;
                   }
                 }
-                
-                const possibleControl = {
+
+                const possibleControl: Control = {
                   id: obj.id || -1,
                   documentId: obj.documentId || `control-${obj.id || Math.random().toString(36).substring(2, 9)}`,
                   code: obj.code,
@@ -541,14 +542,14 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                   category: obj.category || 'Sin categoría',
                   domain: domain
                 };
-                
+
                 return possibleControl;
               }
-              
+
               // Revisar si hay attributes que puedan contener un control
               if (obj.attributes && obj.attributes.code) {
                 const attrs = obj.attributes;
-                const possibleControl = {
+                const possibleControl: Control = {
                   id: obj.id || -1,
                   documentId: attrs.documentId || `control-${obj.id || Math.random().toString(36).substring(2, 9)}`,
                   code: attrs.code,
@@ -557,31 +558,31 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
                   category: attrs.category || attrs.type || 'Sin categoría',
                   domain: attrs.domain || 'Sin dominio'
                 };
-                
+
                 return possibleControl;
               }
-              
+
               // Buscar recursivamente en todas las propiedades
               for (const key in obj) {
                 if (obj[key] && typeof obj[key] === 'object') {
-                  const result = searchForControlFields(obj[key], `${path}.${key}`);
+                  const result: Control | null = searchForControlFields(obj[key], `${path}.${key}`);
                   if (result) return result;
                 }
               }
-              
+
               return null;
             };
-            
+
             // Buscar en toda la estructura del resultado
             const foundControl = searchForControlFields(rawItem, 'resultado');
-            
+
             if (foundControl) {
               controlData = foundControl;
               controlId = foundControl.documentId;
             } else {
               // Intentar usar el campo A.6.1 que vimos en la imagen
               const fixedControl = controles.find(c => c.code === 'A.6.1');
-              
+
               if (fixedControl) {
                 controlData = fixedControl;
                 controlId = fixedControl.documentId;
@@ -602,7 +603,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
               }
             }
           }
-          
+
           // Crear resultado normalizado
           return {
             id: rawItem.id,
@@ -618,7 +619,7 @@ export const useAuditoriaResultados = (auditoriaDocumentId: string | null) => {
         });
 
         setResultados(resultadosData);
-        
+
         // Calcular resumen
         calcularResumen(resultadosData, controles);
       } else {

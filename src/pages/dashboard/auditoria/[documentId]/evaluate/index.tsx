@@ -117,7 +117,6 @@ const EvaluateAuditoria = () => {
   };
 
   useEffect(() => {
-    console.log('EvaluateAuditoria mounted or documentId changed:', documentId);
     if (!documentId) return;
 
     const fetchAuditoria = async () => {
@@ -128,7 +127,6 @@ const EvaluateAuditoria = () => {
         if (!token) throw new Error('No token de autenticación');
 
         // Buscar directamente por documentId
-        console.log('Fetching auditoria with documentId:', documentId);
 
         // Opción 1: Buscar directamente por documentId
         const auditoriaRes = await axios.get('https://backend-iso27001.onrender.com/api/auditorias', {
@@ -141,11 +139,9 @@ const EvaluateAuditoria = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log('Auditoria raw response:', auditoriaRes.data);
 
         if (!auditoriaRes.data.data || auditoriaRes.data.data.length === 0) {
           // Si no encontramos por documentId, intentamos con el endpoint directo
-          console.log('Auditoría no encontrada por filtro, intentando directamente con ID');
 
           // Opción 2: Tratar documentId como ID directo
           const directRes = await axios.get(`https://backend-iso27001.onrender.com/api/auditorias/${documentId}`, {
@@ -153,7 +149,6 @@ const EvaluateAuditoria = () => {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          console.log('Direct auditoria response:', directRes.data);
 
           if (!directRes.data.data) {
             throw new Error('Auditoría no encontrada');
@@ -164,7 +159,6 @@ const EvaluateAuditoria = () => {
             ? { id: auditoriaData.id, ...auditoriaData.attributes }
             : auditoriaData;
 
-          console.log('Parsed auditoria object:', auditoriaObj);
           setAuditoria(auditoriaObj);
           await fetchResultados(auditoriaObj);
         } else {
@@ -174,7 +168,6 @@ const EvaluateAuditoria = () => {
             ? { id: auditoriaData.id, ...auditoriaData.attributes }
             : auditoriaData;
 
-          console.log('Parsed auditoria object:', auditoriaObj);
           setAuditoria(auditoriaObj);
           await fetchResultados(auditoriaObj);
         }
@@ -195,13 +188,11 @@ const EvaluateAuditoria = () => {
           params: { populate: ['controlador', 'auditoria', 'evaluadoPor'] },
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Resultados raw response:', resultadosRes.data);
 
         const resultadosArr: ResultadoApi[] = resultadosRes.data.data;
         const resultadosMap: { [key: string]: ResultadoControlador } = {};
 
         resultadosArr.forEach((res, index) => {
-          console.log(`Resultado #${index}:`, res);
           if (res.controlador && res.controlador.id && res.auditoria && res.auditoria.id) {
             const key = `${res.auditoria.id}-${res.controlador.id}`;
             resultadosMap[key] = {
@@ -276,14 +267,12 @@ const EvaluateAuditoria = () => {
 
       let response;
       if (currentResult.documentId) {
-        console.log('Actualizando resultado existente documentId:', currentResult.documentId);
         response = await axios.put(
           `https://backend-iso27001.onrender.com/api/resultados/${currentResult.documentId}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
-        console.log('Creando nuevo resultado');
         response = await axios.post('https://backend-iso27001.onrender.com/api/resultados', payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -312,9 +301,7 @@ const EvaluateAuditoria = () => {
 
       // Actualizar el progreso usando nuestra utilidad centralizada
       updateProgressAfterEvaluation(auditoria.documentId, evaluados, totalControles);
-      console.log(`Progreso actualizado: ${evaluados}/${totalControles} controles evaluados`);
 
-      console.log('Respuesta al guardar:', response.data);
       setSuccessMessage('Evaluación guardada correctamente');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
